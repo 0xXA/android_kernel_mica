@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 #ifndef _CUST_BATTERY_METER_H
 #define _CUST_BATTERY_METER_H
 
@@ -39,6 +26,22 @@
 
 #define FG_METER_RESISTANCE	0
 
+//jiangjingjing-modify-20151027-begin-defect-811778
+//jiangjingjing-add-for-GCF-20151125-begin-task 979293
+#ifndef TARGET_BUILD_GCF 
+ #if defined(CONFIG_BATT_ID_CHECK_SUPPORT)
+#define AUXADC_BATT_ID_CHANNEL       12
+#define BYD_MIN_VALID_BATT_ID         455
+#define BYD_MAX_VALID_BATT_ID       	 655
+#define VEKEN_MIN_VALID_BATT_ID     215
+#define VEKEN_MAX_VALID_BATT_ID     415 
+#endif
+//jiangjingjing-modify-20151027-end-defect-811778
+#endif
+//jiangjingjing-add-for-GCF-20151125-end-task 979293
+  
+//jiangjingjing-modify-20151027-begin-defect-811778
+#if 0
 /* Qmax for battery  */
 #define Q_MAX_POS_50	1437
 #define Q_MAX_POS_25	1397
@@ -49,10 +52,11 @@
 #define Q_MAX_POS_25_H_CURRENT	1416
 #define Q_MAX_POS_0_H_CURRENT	506
 #define Q_MAX_NEG_10_H_CURRENT	446
-
+#endif
+//jiangjingjing-modify-20151027-end-defect-811778
 
 /* Discharge Percentage */
-#define OAM_D5	0	/*  1 : D5,   0: D2*/
+#define OAM_D5	1	/*  1 : D5,   0: D2*///jiangjingjing-modify-20151027-defect-811778
 
 
 /* battery meter parameter */
@@ -73,7 +77,7 @@
 #define CURRENT_DETECT_R_FG	10  /*1mA*/
 #define MinErrorOffset	1000
 #define FG_VBAT_AVERAGE_SIZE	18
-#define R_FG_VALUE	10 /* mOhm, base is 20*/
+#define R_FG_VALUE	0 /* mOhm, base is 20*/
 
 /* fg 2.0 */
 #define DIFFERENCE_HWOCV_RTC	30
@@ -92,7 +96,13 @@
 #define SHUTDOWN_GAUGE1_XMINS
 #define SHUTDOWN_GAUGE1_MINS	60
 
+//jiangjingjing-add-for-GCF-20151125-begin-task 979293
+#ifdef TARGET_BUILD_GCF
+#define SHUTDOWN_SYSTEM_VOLTAGE	3200
+#else
 #define SHUTDOWN_SYSTEM_VOLTAGE	3400
+#endif
+//jiangjingjing-add-for-GCF-20151125-end-task 979293
 #define CHARGE_TRACKING_TIME	60
 #define DISCHARGE_TRACKING_TIME	10
 
@@ -107,8 +117,10 @@
 #define CUST_POWERON_LOW_CAPACITY_TOLRANCE	5
 #define CUST_POWERON_MAX_VBAT_TOLRANCE	90
 #define CUST_POWERON_DELTA_VBAT_TOLRANCE	30
-#define CUST_POWERON_DELTA_HW_SW_OCV_CAPACITY_TOLRANCE	10
-
+#define CUST_POWERON_DELTA_HW_SW_OCV_CAPACITY_TOLRANCE	25
+/*add by xiaopu.zhu for power on swocv offset*/
+#define POWERON_BOOTIMG_VBAT_OFFSET 80 //old:20 modify-by-jiangjingjing-for-swocv-offset-20160108
+/*add by xiaopu.zhu for power on swocv offset*/
 
 /* Disable Battery check for HQA */
 #ifdef CONFIG_MTK_DISABLE_POWER_ON_OFF_VOLTAGE_LIMITATION
@@ -118,7 +130,7 @@
 /* Dynamic change wake up period of battery thread when suspend*/
 #define VBAT_NORMAL_WAKEUP	3600	/*3.6V*/
 #define VBAT_LOW_POWER_WAKEUP	3500	/*3.5v*/
-#define NORMAL_WAKEUP_PERIOD	5400	/*90 * 60 = 90 min*/
+#define NORMAL_WAKEUP_PERIOD	3600	/*90 * 60 = 90 min*///old:5400 modify-by-jiangjingjing-for-battery capacity update after long time sleep-20160108
 #define LOW_POWER_WAKEUP_PERIOD	300	/*5 * 60 = 5 min*/
 #define CLOSE_POWEROFF_WAKEUP_PERIOD	30	/*30 s*/
 
@@ -137,3 +149,4 @@
 
 
 #endif
+

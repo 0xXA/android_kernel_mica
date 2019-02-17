@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 /*****************************************************************************
  *
  * Filename:
@@ -98,7 +85,7 @@
 #define CV_CHECK_DELAT_FOR_BANDGAP	80	/* 80mV */
 #if defined(CONFIG_MTK_PUMP_EXPRESS_SUPPORT)
 #define BJT_LIMIT			1200000	/* 1.2W */
-#ifndef TA_START_VCHR_TUNUNG_VOLTAGE
+#ifndef TA_START_VCHR_TUNUNG_VOLTAG
 #define TA_START_VCHR_TUNUNG_VOLTAGE	3700	/* for isink blink issue */
 #define TA_CHARGING_CURRENT		CHARGE_CURRENT_1500_00_MA
 #endif				/* TA_START_VCHR_TUNUNG_VOLTAG */
@@ -144,6 +131,13 @@ kal_bool first_vchr_det = KAL_TRUE;
 kal_bool ta_cable_out_occur = KAL_FALSE;
 kal_bool is_ta_connect = KAL_FALSE;
 #endif
+
+//begin add by jiangjingjing 20151103 for jrd policy-Task 811552
+#define BATTERY_TEMPERATURE_50 50
+#define BATTERY_TEMPERATURE_45 45
+#define BATTERY_TEMPERATURE_40 40
+#define BATTERY_TEMPERATURE_38 38
+//end add by jiangjingjing 20151103 for jrd policy-Task 811552
 
  /* ============================================================ // */
 static void __init_charging_varaibles(void)
@@ -653,8 +647,10 @@ static BATTERY_VOLTAGE_ENUM select_jeita_cv(void)
 
 PMU_STATUS do_jeita_state_machine(void)
 {
+	int previous_g_temp_status;
 	BATTERY_VOLTAGE_ENUM cv_voltage;
 
+	previous_g_temp_status = g_temp_status;
 	/* JEITA battery temp Standard */
 	if (BMT_status.temperature >= TEMP_POS_60_THRESHOLD) {
 		battery_log(BAT_LOG_CRTI,
@@ -747,12 +743,15 @@ PMU_STATUS do_jeita_state_machine(void)
 		return PMU_STATUS_FAIL;
 	}
 
-	cv_voltage = select_jeita_cv();
-	battery_charging_control(CHARGING_CMD_SET_CV_VOLTAGE, &cv_voltage);
+	/* set CV after temperature changed */
+	if (g_temp_status != previous_g_temp_status) {
+		cv_voltage = select_jeita_cv();
+		battery_charging_control(CHARGING_CMD_SET_CV_VOLTAGE, &cv_voltage);
 
-#if defined(CONFIG_MTK_HAFG_20)
-	g_cv_voltage = cv_voltage;
-#endif
+		#if defined(CONFIG_MTK_HAFG_20)
+		g_cv_voltage = cv_voltage;
+		#endif
+	}
 
 	return PMU_STATUS_OK;
 }
@@ -959,6 +958,18 @@ void select_charging_curret(void)
 		battery_log(BAT_LOG_CRTI, "[BATTERY] Default CC mode charging : %d\r\n",
 			    g_temp_CC_value);
 
+//begin add by jiangjingjing 20151103 for JRD battery policy-Task 811552
+ //         if(BMT_status.charger_type == STANDARD_CHARGER)
+          	{
+                 if((BMT_status.temperature>BATTERY_TEMPERATURE_38)&&(BMT_status.temperature<MAX_CHARGE_TEMPERATURE))
+                 	{
+                        if(BMT_status.temperature>BATTERY_TEMPERATURE_40)
+                           g_temp_CC_value=CHARGE_CURRENT_450_00_MA;
+                 	}
+
+          	}        
+//end add by jiangjingjing 20151103 for JRD battery policy-Task 811552
+
 #if defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 		set_jeita_charging_current();
 #endif
@@ -1001,7 +1012,7 @@ static unsigned int charging_full_check(void)
 
 	if (BMT_status.ICharging <= charging_full_current) {
 		full_check_count++;
-		if (6 == full_check_count) {
+		if (3 == full_check_count) {
 			status = KAL_TRUE;
 			full_check_count = 0;
 			battery_log(BAT_LOG_CRTI,
@@ -1112,7 +1123,7 @@ static void pchr_turn_on_charging(void)
 			}
 		}
 
-		/* Set Charging Current
+		/* Set Charging Current 
 		if (g_bcct_flag == 1) {
 			battery_log(BAT_LOG_FULL,
 					"[BATTERY] select_charging_curret_bcct !\n");
@@ -1126,13 +1137,16 @@ static void pchr_turn_on_charging(void)
 				battery_log(BAT_LOG_FULL, "[BATTERY] select_charging_current !\n");
 				select_charging_curret();
 			}
-		} */
+		}*/
 
 		if (g_temp_CC_value == CHARGE_CURRENT_0_00_MA) {
 			charging_enable = KAL_FALSE;
 			battery_log(BAT_LOG_CRTI,
 				    "[BATTERY] charging current is set 0mA, turn off charging !\r\n");
 		} else {
+#if defined(CONFIG_MTK_PUMP_EXPRESS_SUPPORT)
+if (ta_check_ta_control == KAL_FALSE)
+#endif
 			{
 				if (ulc_cv_charging_current_flag == KAL_TRUE)
 					battery_charging_control(CHARGING_CMD_SET_CURRENT,
@@ -1145,7 +1159,19 @@ static void pchr_turn_on_charging(void)
 			/* Set CV */
 #if !defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 			if (batt_cust_data.high_battery_voltage_support)
-				cv_voltage = BATTERY_VOLT_04_350000_V;
+			//	cv_voltage = BATTERY_VOLT_04_337500_V; //modify-by-jiangjingjing-Task 811552-begin
+			 {	
+			    if((BMT_status.temperature >= TEMP_POS_45_THRESHOLD)&&(BMT_status.temperature <= MAX_CHARGE_TEMPERATURE))
+	                    {
+		                 cv_voltage = BATTERY_VOLT_04_100000_V;		//tune cv to 4.10v when temperature >= 45		
+	                    }
+	                   else
+	                   {
+	                      cv_voltage = BATTERY_VOLT_04_350000_V;         //modify by jiayu.ding for wingtech req
+				  battery_log(BAT_LOG_CRTI,
+				    "[BATTERY] pchr_turn_on_charging,set CV to 4.35V \r\n");
+	                    }
+			}//high_battery_vlotage_support //modify-by-jiangjingjing-Task 811552-end
 			else
 				cv_voltage = BATTERY_VOLT_04_200000_V;
 
@@ -1230,7 +1256,7 @@ PMU_STATUS BAT_ConstantCurrentModeAction(void)
 
 		/* Charging 9s and discharging 1s : start */
 		battery_charging_control(CHARGING_CMD_ENABLE, &charging_enable);
-		msleep(1000);
+		msleep(1000);  //modify by jiayu.ding
 	}
 #endif
 
@@ -1248,7 +1274,7 @@ PMU_STATUS BAT_TopOffModeAction(void)
 	unsigned int cv_voltage;
 
 	if (batt_cust_data.high_battery_voltage_support)
-		cv_voltage = 4350;
+		cv_voltage = 4350;   //modify by jiayu.ding for wingtech req
 	else
 		cv_voltage = 4200;
 
@@ -1402,5 +1428,4 @@ void mt_battery_charging_algorithm(void)
 		break;
 	}
 
-	battery_charging_control(CHARGING_CMD_DUMP_REGISTER, NULL);
 }

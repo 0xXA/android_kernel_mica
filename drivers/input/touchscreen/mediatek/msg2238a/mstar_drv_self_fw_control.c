@@ -112,7 +112,7 @@ static u8 _gOneDimenFwData[MSG22XX_FIRMWARE_MAIN_BLOCK_SIZE*1024+MSG22XX_FIRMWAR
 //#include "msg21xxa_yyyy_update_bin.h"
 
 #include "msg22xx_xxxx_update_bin.h" // for MSG22xx
-//#include "msg22xx_yyyy_update_bin.h"
+#include "msg22xx_yyyy_update_bin.h"
 
 static u32 _gUpdateRetryCount = UPDATE_FIRMWARE_RETRY_COUNT;
 static struct work_struct _gUpdateFirmwareBySwIdWork;

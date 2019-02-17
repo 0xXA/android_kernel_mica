@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 #ifdef WIN32
 #include "win_test.h"
 #include "stdio.h"
@@ -153,6 +140,122 @@ int getPartIndex(int partId)
 	return partId - 1;
 }
 
+
+//add by allenyao
+#if 0
+static ssize_t brightness_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+
+	/* no lock needed for this */
+	led_update_brightness(led_cdev);
+
+	return sprintf(buf, "%u\n", led_cdev->brightness);
+}
+
+static ssize_t brightness_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	unsigned long state;
+	ssize_t ret = -EINVAL;
+
+	ret = kstrtoul(buf, 10, &state);
+	if (ret)
+		return ret;
+
+	if (state == LED_OFF)
+		led_trigger_remove(led_cdev);
+	__led_set_brightness(led_cdev, state);
+
+	return size;
+}
+#endif
+//
+
+static int open_flag1=0;
+int flashduty1;
+int flashduty[]={1,3,4,5,7,8};
+static ssize_t flash1_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	PK_DBG_FUNC("[LED]get backlight duty value is:%d\n", flashduty1);
+	return sprintf(buf, "%d\n", flashduty1);
+}
+
+static ssize_t flash1_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	FLASHLIGHT_FUNCTION_STRUCT* pF=0;
+	char *pvalue;
+
+	PK_DBG_FUNC("Enter!\n");
+	if((count != 2) || ((buf[0] != '0') && (buf[0] != '1'))){
+		logI(" command!count: %d, buf: %c\n",(int)count,buf[0]);
+		//return -EINVAL;
+	}
+	flashduty1= simple_strtol(buf, &pvalue, 0);
+	if(flashduty1>=5)
+		flashduty1=5;
+	
+	PK_DBG_FUNC("flashduty1: %d\n", flashduty1);
+	
+	//constantFlashlightInit(&pF);
+	subStrobeInit(&pF);
+	//open leds resource
+	if(pF->flashlight_open(NULL)){
+			logI("open fail!\n");
+			if(flashduty1<0)
+				goto release_ledssource1;
+			else if(open_flag1>0)
+				goto work1;
+			else
+				return -EBUSY;
+	}else{
+		open_flag1+=1;
+	}
+
+work1:
+	if(flashduty1>=0){
+		if(pF->flashlight_ioctl(FLASH_IOC_SET_DUTY, flashduty1)){
+			logI("set timeout fail!\n");
+			goto out;
+		}
+		if(pF->flashlight_ioctl(FLASH_IOC_SET_TIME_OUT_TIME_MS, 500*flashduty1)){
+			logI("set timeout fail!\n");
+			goto out;
+		}
+		pF->flashlight_ioctl(FLASH_IOC_SET_ONOFF, 1);
+	}
+
+
+release_ledssource1:
+	if(flashduty1<0){//off
+		open_flag1=0;
+		if(pF->flashlight_ioctl(FLASH_IOC_SET_DUTY, -1)){
+			logI("set timeout fail!\n");
+			goto out;
+		}
+		if(pF->flashlight_ioctl(FLASH_IOC_SET_TIME_OUT_TIME_MS, 0)){
+			logI("set timeout fail!\n");
+			goto out;
+		}
+		pF->flashlight_ioctl(FLASH_IOC_SET_ONOFF, 0);
+		pF->flashlight_release(NULL);
+	}
+	
+	PK_DBG_FUNC("Exit!\n");
+	return count;
+
+out:
+	pF->flashlight_release(NULL);
+	open_flag1=0;
+	return -count;
+}
+static DEVICE_ATTR_RW(flash1);
+
+//static DEVICE_ATTR(flash1,0666,flash1_show,flash1_store);
+//add end
+
 MINT32 default_flashlight_open(void *pArg)
 {
 	logI("[default_flashlight_open] E ~");
@@ -222,7 +325,7 @@ static int setFlashDrv(int sensorDev, int strobeId)
 	if (partIndex < 0)
 		return -1;
 
-	logI("setFlashDrv sensorDev=%d, strobeId=%d, partId=%d ~", sensorDev, strobeId, partId);
+	printk("setFlashDrv sensorDev=%d, strobeId=%d, partId=%d ~", sensorDev, strobeId, partId);
 
 	ppF = &g_pFlashInitFunc[sensorDevIndex][strobeIndex][partIndex];
 	if (sensorDev == e_CAMERA_MAIN_SENSOR) {
@@ -410,7 +513,7 @@ static long flashlight_ioctl_core(struct file *file, unsigned int cmd, unsigned 
 	unsigned long copyRet;
 
 	copyRet = copy_from_user(&kdArg, (void *)arg, sizeof(kdStrobeDrvArg));
-	logI("flashlight_ioctl cmd=0x%x(nr=%d), senorDev=0x%x ledId=0x%x arg=0x%lx", cmd,
+	printk("flashlight_ioctl cmd=0x%x(nr=%d), senorDev=0x%x ledId=0x%x arg=0x%lx", cmd,
 	     _IOC_NR(cmd), kdArg.sensorDev, kdArg.strobeId, (unsigned long)kdArg.arg);
 	sensorDevIndex = getSensorDevIndex(kdArg.sensorDev);
 	strobeIndex = getStrobeIndex(kdArg.strobeId);
@@ -705,6 +808,11 @@ static int flashlight_probe(struct platform_device *dev)
 	if (NULL == flashlight_device) {
 		logI("[flashlight_probe] device_create fail ~");
 		goto flashlight_probe_error;
+	}
+
+	ret = device_create_file(flashlight_device,&dev_attr_flash1);
+	if (ret) {
+		logI("[flashlight_probe]device_create_file flash1 fail!\n");
 	}
 
 	/* initialize members */

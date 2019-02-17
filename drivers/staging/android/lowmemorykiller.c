@@ -309,30 +309,22 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 			continue;
 		}
 
-		if (test_tsk_thread_flag(p, TIF_MEMDIE)) {
-			if (time_before_eq(jiffies, lowmem_deathpending_timeout)) {
+		if (test_tsk_thread_flag(p, TIF_MEMDIE) &&
+		    time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 #ifdef CONFIG_MT_ENG_BUILD
-				static pid_t last_dying_pid;
+			static pid_t last_dying_pid;
 
-				if (last_dying_pid != p->pid) {
-					lowmem_print(1, "lowmem_shrink return directly, due to  %d (%s) is dying\n",
-						     p->pid, p->comm);
-					last_dying_pid = p->pid;
-				}
-#endif
-				task_unlock(p);
-				rcu_read_unlock();
-				spin_unlock(&lowmem_shrink_lock);
-				return SHRINK_STOP;
+			if (last_dying_pid != p->pid) {
+				lowmem_print(1, "lowmem_shrink return directly, due to  %d (%s) is dying\n",
+					p->pid, p->comm);
+				last_dying_pid = p->pid;
 			}
-
-			/* p is not a suitable victim */
-			pr_info_ratelimited("%d (%s) is dying, find next candidate\n",
-					     p->pid, p->comm);
+#endif
 			task_unlock(p);
-			continue;
+			rcu_read_unlock();
+			spin_unlock(&lowmem_shrink_lock);
+			return SHRINK_STOP;
 		}
-
 		oom_score_adj = p->signal->oom_score_adj;
 
 		if (output_expect(enable_candidate_log)) {
@@ -561,11 +553,7 @@ static int __init lowmem_init(void)
 #endif
 
 #ifdef CONFIG_ZRAM
-#ifndef CONFIG_MTK_GMO_RAM_OPTIMIZE
 	vm_swappiness = 100;
-#else
-	vm_swappiness = 120;
-#endif
 #endif
 
 

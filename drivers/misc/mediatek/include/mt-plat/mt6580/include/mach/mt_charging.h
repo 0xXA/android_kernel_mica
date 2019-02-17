@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 #ifndef _CUST_BAT_H_
 #define _CUST_BAT_H_
 
@@ -18,20 +5,25 @@
 #define STOP_CHARGING_IN_TAKLING
 #define TALKING_RECHARGE_VOLTAGE 3800
 #define TALKING_SYNC_TIME		   60
-
+//jiangjingjing-modify-for-battery-temperature-policy-begin-task-811552
 /* Battery Temperature Protection */
 #define MTK_TEMPERATURE_RECHARGE_SUPPORT
-#define MAX_CHARGE_TEMPERATURE  50
-#define MAX_CHARGE_TEMPERATURE_MINUS_X_DEGREE	47
+#define MAX_CHARGE_TEMPERATURE  55  //50 
+#define MAX_CHARGE_TEMPERATURE_MINUS_X_DEGREE	50 //47  
 #define MIN_CHARGE_TEMPERATURE  0
-#define MIN_CHARGE_TEMPERATURE_PLUS_X_DEGREE	6
+#define MIN_CHARGE_TEMPERATURE_PLUS_X_DEGREE	2 //6  
 #define ERR_CHARGE_TEMPERATURE  0xFF
+
+
+#define MAX_WARNING_TEMPERATURE  58 //ADD by jiangjingjing
+#define MIN_WARNING_TEMPERATURE  -18 //ADD by jiangjingjing
+
 
 /* Linear Charging Threshold */
 #define V_PRE2CC_THRES	3400	/*mV*/
-#define V_CC2TOPOFF_THRES	4050
-#define RECHARGING_VOLTAGE	4110
-#define CHARGING_FULL_CURRENT	100	/*mA*/
+#define V_CC2TOPOFF_THRES	4150
+#define RECHARGING_VOLTAGE	4265  //modify by jiayu.ding
+#define CHARGING_FULL_CURRENT	 150	/*mA*/ //old:100 modify-by-jiangjingjing
 
 /* Charging Current Setting */
 /*#define CONFIG_USB_IF */
@@ -41,12 +33,12 @@
 
 #define USB_CHARGER_CURRENT	CHARGE_CURRENT_500_00_MA	/*500mA*/
 /*#define AC_CHARGER_CURRENT					CHARGE_CURRENT_650_00_MA*/
-#define AC_CHARGER_CURRENT	CHARGE_CURRENT_1000_00_MA
+#define AC_CHARGER_CURRENT	CHARGE_CURRENT_650_00_MA  //old:1000 modify-by-jiangjingjing
 #define NON_STD_AC_CHARGER_CURRENT	CHARGE_CURRENT_500_00_MA
 #define CHARGING_HOST_CHARGER_CURRENT	CHARGE_CURRENT_650_00_MA
 #define APPLE_0_5A_CHARGER_CURRENT	CHARGE_CURRENT_500_00_MA
 #define APPLE_1_0A_CHARGER_CURRENT	CHARGE_CURRENT_650_00_MA
-#define APPLE_2_1A_CHARGER_CURRENT	CHARGE_CURRENT_800_00_MA
+#define APPLE_2_1A_CHARGER_CURRENT	CHARGE_CURRENT_650_00_MA
 
 
 /* Precise Tunning */
@@ -54,7 +46,7 @@
 #define BATTERY_AVERAGE_SIZE	30
 
 /* charger error check */
-/*#define BAT_LOW_TEMP_PROTECT_ENABLE          stop charging if temp < MIN_CHARGE_TEMPERATURE*/
+#define BAT_LOW_TEMP_PROTECT_ENABLE          /*stop charging if temp < MIN_CHARGE_TEMPERATURE*/ //modify-by-jiangjingjing
 #define V_CHARGER_ENABLE	0	/* 1:ON , 0:OFF	*/
 #define V_CHARGER_MAX	6500	/* 6.5 V*/
 #define V_CHARGER_MIN	4400	/* 4.4 V*/
@@ -96,8 +88,8 @@
 
 
 /* High battery support */
-/*#define HIGH_BATTERY_VOLTAGE_SUPPORT*/
-
+#define HIGH_BATTERY_VOLTAGE_SUPPORT //modify-by-jiangjingjing
+//jiangjingjing-modify-for-battery-temperature-policy-end-task-811552
 /* Disable Battery check for HQA */
 #ifdef CONFIG_MTK_DISABLE_POWER_ON_OFF_VOLTAGE_LIMITATION
 #define CONFIG_DIS_CHECK_BATTERY
@@ -108,3 +100,4 @@
 #endif
 
 #endif
+

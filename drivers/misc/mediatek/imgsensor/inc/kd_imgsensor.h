@@ -158,10 +158,13 @@
 #define OV7675_SENSOR_ID                        0x7673
 #define OV5693_SENSOR_ID                        0x5690
 #define OV5693_SENSOR_ID_2                  (0x5690+10000)
-#define OV5670MIPI_SENSOR_ID                    0x5670
 #define OV5670MIPI_SENSOR_ID_2                  (0x5670+010000)
 #define OV5675MIPI_SENSOR_ID                    0x5675
 #define OV5671MIPI_SENSOR_ID                    0x5671
+#define OV5670MIPI_SENSOR_ID                    0x5670
+#define OV5670FFMIPI_SENSOR_ID                  0x567B
+#define OV5670_FRONT_MIPI_SENSOR_ID                    0x567F
+#define GC2355_FRONT_SENSOR_ID                  0x2355
 #define OV5650_SENSOR_ID                        0x5651
 #define OV5650MIPI_SENSOR_ID                    0x5651
 #define OV5648MIPI_SENSOR_ID                    0x5648
@@ -215,6 +218,17 @@
 #define S5K8AAYX_MIPI_SENSOR_ID                 0x08aa
 #define S5K8AAYX_SENSOR_ID                      0x08aa
 #define S5K5E8YX_SENSOR_ID                      0x5e80
+#define S5K5E8YX_SENSOR_ID_BACK_AF                      0x5e80
+#define S5K5E8YX_SENSOR_ID_BACK_FF                      0x5e81
+#define S5K5E8YX_SENSOR_ID_FRONT                      0x5e82
+#define GC5005MIPI_BACKAF_SENSOR_ID             0x5005
+#define GC5005MIPI_BACKFF_SENSOR_ID             0x5006
+#define GC5005MIPI_FRONT_SENSOR_ID              0x5007
+#define C2590MIPI_FRONT_SENSOR_ID               0x0202
+#define GC2355MIPI_FRONT_SENSOR_ID              0x2355
+#define OV5670MIPI_BACKAF_SENSOR_ID             0x5670
+#define OV5670MIPI_BACKFF_SENSOR_ID             0x5671
+#define OV5670MIPI_FRONT_SENSOR_ID              0x5672
 /*HI*/
 #define HI843_SENSOR_ID                         0x0843
 #define HI841_SENSOR_ID                         0x0841
@@ -271,6 +285,7 @@
 #define SP0A19_YUV_SENSOR_ID                    0xA6
 #define SP2518_YUV_SENSOR_ID                    0x53
 #define SP2508_SENSOR_ID                        0x2508  /*add by ontim */
+#define SP2508_FRONT_SENSOR_ID                  0x2508
 #define SP2509_SENSOR_ID                        0x2509
 /*A*/
 #define A5141MIPI_SENSOR_ID                     0x4800
@@ -308,6 +323,10 @@
 #define CAMERA_HW_DEVNAME                       "kd_camera_hw"
 /* SENSOR DEVICE DRIVER NAME */
 /*IMX*/
+#define SENSOR_DRVNAME_OV5670_BACKAF_MIPI_RAW   "ov5670backafmipiraw"
+#define SENSOR_DRVNAME_OV5670_BACKFF_MIPI_RAW   "ov5670backffmipiraw"
+#define SENSOR_DRVNAME_OV5670_FRONT_MIPI_RAW    "ov5670frontmipiraw"
+#define SENSOR_DRVNAME_GC2355_FRONT_MIPI_RAW    "gc2355frontmipiraw"
 #define SENSOR_DRVNAME_IMX398_MIPI_RAW          "imx398mipiraw"
 #define SENSOR_DRVNAME_IMX386_MIPI_RAW          "imx386mipiraw"
 #define SENSOR_DRVNAME_IMX362_MIPI_RAW          "imx362mipiraw"
@@ -351,6 +370,9 @@
 #define SENSOR_DRVNAME_OV5693_MIPI_RAW          "ov5693mipiraw"
 #define SENSOR_DRVNAME_OV5693_MIPI_RAW_2          "ov5693mipiraw2"
 #define SENSOR_DRVNAME_OV5670_MIPI_RAW          "ov5670mipiraw"
+#define SENSOR_DRVNAME_OV5670FF_MIPI_RAW          "ov5670ffmipiraw"
+#define SENSOR_DRVNAME_OV5670_FRONT_MIPI_RAW          "ov5670frontmipiraw"
+#define SENSOR_DRVNAME_GC2355_MIPI_RAW_FRONT    "gc2355mipirawfront"
 #define SENSOR_DRVNAME_OV5670_MIPI_RAW_2        "ov5670mipiraw2"
 #define SENSOR_DRVNAME_OV5671_MIPI_RAW          "ov5671mipiraw"
 #define SENSOR_DRVNAME_OV5647MIPI_RAW           "ov5647mipiraw"
@@ -409,6 +431,14 @@
 #define SENSOR_DRVNAME_HI253_YUV                "hi253yuv"
 #define SENSOR_DRVNAME_HI191_MIPI_RAW           "hi191mipiraw"
 /*MT*/
+#define SENSOR_DRVNAME_S5K5E8YX_MIPI_RAW_BACK_AF        "s5k5e8yxmipiraw_back_af"
+#define SENSOR_DRVNAME_S5K5E8YX_MIPI_RAW_BACK_FF        "s5k5e8yxmipiraw_back_ff"
+#define SENSOR_DRVNAME_S5K5E8YX_MIPI_RAW_FRONT        "s5k5e8yxmipiraw_front"
+#define SENSOR_DRVNAME_GC5005_BACKAF_MIPI_RAW   "gc5005backafmipiraw"
+#define SENSOR_DRVNAME_GC5005_BACKFF_MIPI_RAW   "gc5005backffmipiraw"
+#define SENSOR_DRVNAME_GC5005_FRONT_MIPI_RAW    "gc5005frontmipiraw"
+#define SENSOR_DRVNAME_SP2508_FRONT_MIPI_RAW    "sp2508mipiraw"
+#define SENSOR_DRVNAME_C2590_FRONT_MIPI_RAW     "c2590frontmipiraw"
 #define SENSOR_DRVNAME_MT9P012_RAW              "mt9p012"
 #define SENSOR_DRVNAME_MT9P015_RAW              "mt9p015"
 #define SENSOR_DRVNAME_MT9P017_RAW              "mt9p017"

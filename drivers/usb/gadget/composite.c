@@ -1078,7 +1078,6 @@ static int get_string(struct usb_composite_dev *cdev,
  */
 int usb_string_id(struct usb_composite_dev *cdev)
 {
-	pr_info("usb string id: %d\n", cdev->next_string_id);
 	if (cdev->next_string_id < 254) {
 		/* string id 0 is reserved by USB spec for list of
 		 * supported languages */

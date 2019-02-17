@@ -3048,6 +3048,9 @@ bool Get_Cam_Regulator(void)
 				if (regVCAMAF == NULL) {
 					regVCAMAF = regulator_get(sensor_device, "vcamaf");
 				}
+				if (regSubVCAMD == NULL) {
+					regSubVCAMD = regulator_get(sensor_device, "vgp3");
+				}
 			} else {
 				/* backup original dev.of_node */
 				kd_node = sensor_device->of_node;
@@ -3067,7 +3070,7 @@ bool Get_Cam_Regulator(void)
 						regVCAMD = regulator_get(sensor_device, "vcamd");
 				}
 				if (regSubVCAMD == NULL) {
-						regSubVCAMD = regulator_get(sensor_device, "vcamd_sub");
+						regSubVCAMD = regulator_get(sensor_device, "vgp3");
 				}
 				if (regVCAMIO == NULL) {
 						regVCAMIO = regulator_get(sensor_device, "vcamio");
@@ -3103,6 +3106,8 @@ bool _hwPowerOn(KD_REGULATOR_TYPE_T type, int powerVolt)
 		reg = regVCAMIO;
 	} else if (type == VCAMAF) {
 		reg = regVCAMAF;
+	} else if (type == SUB_VCAMD) {
+		reg = regSubVCAMD;
 	} else
 		return ret;
 
@@ -3140,6 +3145,8 @@ bool _hwPowerDown(KD_REGULATOR_TYPE_T type)
 		reg = regVCAMIO;
 	} else if (type == VCAMAF) {
 		reg = regVCAMAF;
+	} else if (type == SUB_VCAMD) {
+		reg = regSubVCAMD;
 	} else
 		return ret;
 

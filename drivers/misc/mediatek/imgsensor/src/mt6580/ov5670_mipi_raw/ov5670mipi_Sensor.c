@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 /*****************************************************************************
  *
  * Filename:
@@ -39,9 +26,9 @@
 #include <linux/uaccess.h>
 #include <linux/fs.h>
 #include <asm/atomic.h>
-#include <linux/types.h>
+//#include <asm/system.h>
+#include <linux/xlog.h>
 
-#include "kd_camera_typedef.h"
 #include "kd_camera_hw.h"
 #include "kd_imgsensor.h"
 #include "kd_imgsensor_define.h"
@@ -54,7 +41,7 @@
 #endif
 #define PFX "ov5670_camera_sensor"
 #define LOG_INF(format, args...)	pr_debug(PFX "[%s] " format, __FUNCTION__, ##args)
-
+//extern char Back_Camera_Name[256]; 
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 
 
@@ -140,12 +127,21 @@ static imgsensor_info_struct imgsensor_info = {
 	.ihdr_support = 0,	  //1, support; 0,not support
 	.ihdr_le_firstline = 0,  //1,le first ; 0, se first
 	.sensor_mode_num = 5,	  //support sensor mode num
-
+	//BEGIN: fangjie modify for CTS android.hardware.camera2.cts.RobustnessTest/testMandatoryOutputCombinations
+	/* old:
 	.cap_delay_frame = 2,		//enter capture delay frame num
 	.pre_delay_frame = 2, 		//enter preview delay frame num
 	.video_delay_frame = 2,		//enter video delay frame num
 	.hs_video_delay_frame = 2,	//enter high speed video  delay frame num
 	.slim_video_delay_frame = 2,//enter slim video delay frame num
+        */
+	// resume the delay frame from 1 to 2 for defect 485200,  and google cts testMandatoryOutputCombinations resolved by other patch task506144
+	.cap_delay_frame = 2,		//enter capture delay frame num
+	.pre_delay_frame = 2, 		//enter preview delay frame num
+	.video_delay_frame = 2,		//enter video delay frame num
+	.hs_video_delay_frame = 2,	//enter high speed video  delay frame num
+	.slim_video_delay_frame = 2,//enter slim video delay frame num
+	//END: fangjie modify for CTS android.hardware.camera2.cts.RobustnessTest/testMandatoryOutputCombinations
 
 	.isp_driving_current = ISP_DRIVING_2MA, //mclk driving current
     .sensor_interface_type = SENSOR_INTERFACE_TYPE_MIPI,//sensor_interface_type
@@ -213,7 +209,6 @@ static void set_dummy(void)
 
 static void set_max_framerate(UINT16 framerate,kal_bool min_framelength_en)
 {
-
 	kal_uint32 frame_length = imgsensor.frame_length;
 	//unsigned long flags;
 
@@ -245,7 +240,6 @@ static void write_shutter(kal_uint16 shutter)
 {
     unsigned long flags;
 	kal_uint16 realtime_fps = 0;
-//	kal_uint32 frame_length = 0;
     spin_lock_irqsave(&imgsensor_drv_lock, flags);
     imgsensor.shutter = shutter;
     spin_unlock_irqrestore(&imgsensor_drv_lock, flags);
@@ -356,6 +350,8 @@ static kal_uint16 gain2reg(const kal_uint16 gain)
 static kal_uint16 set_gain(kal_uint16 gain)
 {
 	kal_uint16 reg_gain;
+	kal_uint16 iGain =1;
+	kal_uint8 ChangeFlag=0x07;
 
 	/* 0x350A[0:1], 0x350B[0:7] AGC real gain */
 	/* [0:3] = N meams N /16 X	*/
@@ -372,13 +368,27 @@ static kal_uint16 set_gain(kal_uint16 gain)
 			gain = 8 * BASEGAIN;
 		}
 
+		iGain = gain/BASEGAIN;
+
+		if(iGain<2){
+			ChangeFlag= 0x00;
+		}
+		else if(iGain<4){
+			ChangeFlag= 0x01;
+		}
+		else if(iGain<8){
+			ChangeFlag= 0x03;
+		}
+		else{
+			ChangeFlag= 0x07;
+		}
 
 	reg_gain = gain2reg(gain);
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.gain = reg_gain;
 	spin_unlock(&imgsensor_drv_lock);
-	LOG_INF("gain = %d, reg_gain = 0x%x\n ", gain, reg_gain);
-/*
+	LOG_INF("gain = %d ,reg[0x366a]= %d, reg_gain = 0x%x\n ", gain, ChangeFlag, reg_gain);
+
 	write_cmos_sensor(0x301d, 0xf0);
 	write_cmos_sensor(0x3209, 0x00);
 	write_cmos_sensor(0x320a, 0x01);
@@ -399,14 +409,7 @@ static kal_uint16 set_gain(kal_uint16 gain)
 	//group lanch
 	write_cmos_sensor(0x320B, 0x15);
 	write_cmos_sensor(0x3208, 0xA1);
-	*/
-	write_cmos_sensor(0x3208, 0x00);
-	write_cmos_sensor(0x366a, 0x07/*ChangeFlag*/);
-	/*vendor suggest 0x366a is fix to 0x07*/
-	write_cmos_sensor(0x3508, reg_gain >> 8);
-	write_cmos_sensor(0x3509, reg_gain & 0xFF);
-	write_cmos_sensor(0x3208, 0x10);
-	write_cmos_sensor(0x3208, 0xA0);
+
 	return gain;
 }	/*	set_gain  */
 
@@ -444,47 +447,6 @@ static void ihdr_write_shutter_gain(kal_uint16 le, kal_uint16 se, kal_uint16 gai
 
 }
 
-
-#if 0
-static void set_mirror_flip(kal_uint8 image_mirror)
-{
-	LOG_INF("image_mirror = %d\n", image_mirror);
-
-	/********************************************************
-	   *
-	   *   0x3820[2] ISP Vertical flip
-	   *   0x3820[1] Sensor Vertical flip
-	   *
-	   *   0x3821[2] ISP Horizontal mirror
-	   *   0x3821[1] Sensor Horizontal mirror
-	   *
-	   *   ISP and Sensor flip or mirror register bit should be the same!!
-	   *
-	   ********************************************************/
-
-	switch (image_mirror) {
-		case IMAGE_NORMAL:
-			write_cmos_sensor(0x3820,((read_cmos_sensor(0x3820) & 0xF9) | 0x00));
-			write_cmos_sensor(0x3821,((read_cmos_sensor(0x3821) & 0xF9) | 0x06));
-			break;
-		case IMAGE_H_MIRROR:
-			write_cmos_sensor(0x3820,((read_cmos_sensor(0x3820) & 0xF9) | 0x00));
-			write_cmos_sensor(0x3821,((read_cmos_sensor(0x3821) & 0xF9) | 0x00));
-			break;
-		case IMAGE_V_MIRROR:
-			write_cmos_sensor(0x3820,((read_cmos_sensor(0x3820) & 0xF9) | 0x06));
-			write_cmos_sensor(0x3821,((read_cmos_sensor(0x3821) & 0xF9) | 0x06));
-			break;
-		case IMAGE_HV_MIRROR:
-			write_cmos_sensor(0x3820,((read_cmos_sensor(0x3820) & 0xF9) | 0x06));
-			write_cmos_sensor(0x3821,((read_cmos_sensor(0x3821) & 0xF9) | 0x00));
-			break;
-		default:
-			LOG_INF("Error image_mirror setting\n");
-	}
-
-}
-#endif
 /*************************************************************************
 * FUNCTION
 *	night_mode
@@ -1154,10 +1116,107 @@ static void slim_video_setting(void)
 * GLOBALS AFFECTED
 *
 *************************************************************************/
+/*************************************************************************
+* FUNCTION
+*	ov5670_read_otp
+*
+* DESCRIPTION
+*	This function get the sensor vcm id
+*
+* PARAMETERS
+*	*sensorID : return the sensor vcm id
+*
+* RETURNS
+*	None
+*
+* GLOBALS AFFECTED
+*
+*************************************************************************/
+static int ov5670_read_otp(void)
+{
+	int otp_flag,sensor_id;	
+	int temp1,module_id,lens_id,vcm_id;
+      
+        //init
+	write_cmos_sensor(0x0100,0x01);
+	mdelay(5);	
+	temp1=read_cmos_sensor(0x3D85);
+ 	write_cmos_sensor(0x3D85,(0x06)|(temp1&(~0x06)));
+	write_cmos_sensor(0x3D8C,0x73);
+	write_cmos_sensor(0x3D8D,0xBF);
+
+	mdelay(40);
+	write_cmos_sensor(0x5002,(temp1&(~0x08)));
+	write_cmos_sensor(0x3D84,0xC0);
+	write_cmos_sensor(0x3D88,0x70);
+	write_cmos_sensor(0x3D89,0x10);
+	write_cmos_sensor(0x3D8A,0x70);
+	write_cmos_sensor(0x3D8B,0x42);
+	write_cmos_sensor(0x3D81,0x01);
+	//read module info
+	mdelay(40);
+	otp_flag=read_cmos_sensor(0x7010);
+	if((otp_flag&0xc0)==0x40)
+	{
+		module_id=read_cmos_sensor(0x7011);
+		lens_id=read_cmos_sensor(0x7012);
+		vcm_id=read_cmos_sensor(0x7013);
+	}
+	else if((otp_flag&0x30)==0x10)
+	{
+		module_id=read_cmos_sensor(0x7018);
+		lens_id=read_cmos_sensor(0x7019);
+		vcm_id=read_cmos_sensor(0x701a);
+	}
+	else if((otp_flag&0x0c)==0x04)
+	{
+		module_id=read_cmos_sensor(0x701f);
+		lens_id=read_cmos_sensor(0x7020);
+		vcm_id=read_cmos_sensor(0x7021);
+	}
+	else
+	{
+	printk("TCL:OTP read error! info_flag=%x, \n",otp_flag);
+		return 0xFF;
+	}
+	sensor_id = ((read_cmos_sensor(0x300B) << 8) | read_cmos_sensor(0x300C));
+	printk("TCL: info_flag=%x,sensor ID=%x ,module_id=%x,lens_id=%x,vcm_id=%x  \n",otp_flag,sensor_id,module_id,lens_id,vcm_id);
+	/*
+	//awb
+	awb_flag=read_cmos_sensor(0x7026);
+	if((awb_flag&0xc0)==0x40)
+	{
+		rg_h=read_cmos_sensor(0x7028);
+		bg_h=read_cmos_sensor(0x7029);
+		g_ave1=read_cmos_sensor(0x702A);
+		rg_bg_l=read_cmos_sensor(0x702B);
+	}
+	else if((awb_flag&0x30)==0x10)
+	{
+		rg_h=read_cmos_sensor(0x7031);
+		bg_h=read_cmos_sensor(0x7032);
+		g_ave1=read_cmos_sensor(0x7033);
+		rg_bg_l=read_cmos_sensor(0x7034);
+	}	
+	else if((awb_flag&0x0c)==0x04)
+	{	
+		rg_h=read_cmos_sensor(0x703A);
+		bg_h=read_cmos_sensor(0x703B);
+		g_ave1=read_cmos_sensor(0x703C);
+		rg_bg_l=read_cmos_sensor(0x703D);
+	}
+        printk("TCL :awb_flag=%x, %x ,%x ,%x ,%x\n",awb_flag,rg_h,bg_h,rg_bg_l,g_ave1);
+        */
+	temp1=read_cmos_sensor(0x5002);
+ 	write_cmos_sensor(0x5002,(0x08)|(temp1&(~0x08)));
+	return vcm_id;
+}
+
 static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 {
 	kal_uint8 i = 0;
 	kal_uint8 retry = 2;
+	int vcm_id;
 	//sensor have two i2c address 0x6c 0x6d & 0x21 0x20, we should detect the module used i2c address
 	while (imgsensor_info.i2c_addr_table[i] != 0xff) {
 		spin_lock(&imgsensor_drv_lock);
@@ -1165,11 +1224,22 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 		spin_unlock(&imgsensor_drv_lock);
 		do {
 			*sensor_id = ((read_cmos_sensor(0x300B) << 8) | read_cmos_sensor(0x300C));
-			if (*sensor_id == imgsensor_info.sensor_id) {
+				vcm_id=ov5670_read_otp();
+				LOG_INF("get_imgsensor_id  vcm_id id: %x\n", vcm_id);	
+			if(vcm_id!=0xFF)
+			{
+				if(vcm_id==0x63)
+				{		
+				LOG_INF("i2c write id: 0x%x, sensor id: 0x%x\n", imgsensor.i2c_write_id,*sensor_id);						
+				if (*sensor_id == imgsensor_info.sensor_id) {
+//				sprintf(Back_Camera_Name,"OV5670:5M_AF");  
 				LOG_INF("i2c write id: 0x%x, sensor id: 0x%x\n", imgsensor.i2c_write_id,*sensor_id);
 				return ERROR_NONE;
-			}
+					}
+			       }
+
 			LOG_INF("Read sensor id fail, write id:0x%x id: 0x%x\n", imgsensor.i2c_write_id,*sensor_id);
+			}
 			retry--;
 		} while(retry > 0);
 		i++;
@@ -1182,7 +1252,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 	}
 	return ERROR_NONE;
 }
-
 
 /*************************************************************************
 * FUNCTION
@@ -1449,7 +1518,7 @@ static kal_uint32 get_info(MSDK_SCENARIO_ID_ENUM scenario_id,
 					  MSDK_SENSOR_INFO_STRUCT *sensor_info,
 					  MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
-	/*LOG_INF("scenario_id = %d\n", scenario_id);*/
+	LOG_INF("scenario_id = %d\n", scenario_id);
 
 
 	//sensor_info->SensorVideoFrameRate = imgsensor_info.normal_video.max_framerate/10; /* not use */

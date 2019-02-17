@@ -136,10 +136,7 @@ static void disp_pwm_backlight_status(bool is_power_on)
 
 	if (g_pwm_led_mode == MT65XX_LED_MODE_CUST_BLS_PWM) {
 		/* Read PWM value from register */
-		if (DISP_REG_GET(reg_base + DISP_PWM_EN_OFF) > 0)
-			high_width = DISP_REG_GET(reg_base + DISP_PWM_CON_1_OFF) >> 16;
-		else
-			high_width = 0;
+		high_width = DISP_REG_GET(reg_base + DISP_PWM_CON_1_OFF) >> 16;
 	} else {
 		/* Set dummy backlight value */
 		if (is_power_on == true)
@@ -172,10 +169,7 @@ static void disp_pwm_query_backlight(char *debug_output)
 	if (g_pwm_is_power_on == true) {
 		if (g_pwm_led_mode == MT65XX_LED_MODE_CUST_BLS_PWM) {
 			/* Read PWM value from register */
-			if (DISP_REG_GET(reg_base + DISP_PWM_EN_OFF) > 0)
-				high_width = DISP_REG_GET(reg_base + DISP_PWM_CON_1_OFF) >> 16;
-			else
-				high_width = 0;
+			high_width = DISP_REG_GET(reg_base + DISP_PWM_CON_1_OFF) >> 16;
 		} else {
 			/* Set dummy backlight value */
 			high_width = 1023;
@@ -521,17 +515,12 @@ int disp_pwm_set_backlight_cmdq(disp_pwm_id_t id, int level_1024, void *cmdq)
 		level_1024 = disp_pwm_level_remap(id, level_1024);
 
 		reg_base = pwm_get_reg_base(id);
+		DISP_REG_MASK(cmdq, reg_base + DISP_PWM_CON_1_OFF, level_1024 << 16, 0x1fff << 16);
 
-		if (level_1024 > 0) {
-			DISP_REG_MASK(cmdq, reg_base + DISP_PWM_CON_1_OFF, level_1024 << 16, 0x1fff << 16);
-
+		if (level_1024 > 0)
 			disp_pwm_set_enabled(cmdq, id, 1);
-		} else {
-			/* Avoid to set 0 */
-			DISP_REG_MASK(cmdq, reg_base + DISP_PWM_CON_1_OFF, 1 << 16, 0x1fff << 16);
-
+		else
 			disp_pwm_set_enabled(cmdq, id, 0);	/* To save power */
-		}
 
 		DISP_REG_MASK(cmdq, reg_base + DISP_PWM_COMMIT_OFF, 1, ~0);
 		DISP_REG_MASK(cmdq, reg_base + DISP_PWM_COMMIT_OFF, 0, ~0);

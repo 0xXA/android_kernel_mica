@@ -720,7 +720,7 @@ static struct cg_clk clks[] = {
 	}, /* rg_msdc0_mux_sel */
 	[MT_CG_MSDC1_SW_CG] = {
 		.name = __stringify(MT_CG_MSDC1_SW_CG),
-		.cnt = 1,
+		.cnt = 0,
 		.mask = MSDC1_SW_CG_BIT,
 		.ops = &general_gate_cg_clk_ops,
 		.grp = &grps[CG_CTRL1],
@@ -4074,8 +4074,7 @@ static void mt_clks_init(void)
 	clk_writel(CLK_GATING_CTRL2,
 		(clk_readl(CLK_GATING_CTRL2) | NFI_BUS_SW_CG_BIT));
 	clk_writel(CLK_GATING_CTRL1,
-		(clk_readl(CLK_GATING_CTRL1) | NFI_SW_CG_BIT | NFIECC_SW_CG_BIT | NFI2X_SW_CG_BIT |
-		MSDC1_SW_CG_BIT));
+		(clk_readl(CLK_GATING_CTRL1) | NFI_SW_CG_BIT | NFIECC_SW_CG_BIT | NFI2X_SW_CG_BIT));
 
 	/* init CG_CLK */
 	for (i = 0; i < NR_CLKS; i++) {

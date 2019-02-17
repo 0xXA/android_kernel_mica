@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -71,22 +58,250 @@
 #endif
 
 
+//add by allenyao
+#if 0
+ enum mt6580_led_pmic {
+	MT65XX_LED_PMIC_LCD_ISINK = 0,
+	MT65XX_LED_PMIC_NLED_ISINK0,
+	MT65XX_LED_PMIC_NLED_ISINK1,
+	MT65XX_LED_PMIC_NLED_ISINK2,
+	MT65XX_LED_PMIC_NLED_ISINK3
+};
+extern int mt_brightness_set_pmic(enum mt6580_led_pmic pmic_type, u32 level, u32 div);
+#endif
+
+
+static DEFINE_SPINLOCK(g_strobeSMPLock);	/* cotta-- SMP proection */
+static u32 strobe_Res;
+static struct work_struct workTimeOut;
+static int g_timeOutTimeMs;
+static int g_duty = -1;
+static BOOL g_strobe_On;
+
+
+
+extern int mtkcam_flash_en(int val);
+extern int mtkcam_flashstrobe_swich(int val);
+extern int  flash_isink_init(void);
+extern int flash_isink_enable(void);
+extern int  flash_isink_disable(void);
+
+
+
+static  int FL_Init(void){
+	flash_isink_init();
+	return 0;
+}
+
+
+
+
+static int FL_dim_duty(kal_uint32 duty)
+{
+	PK_DBG(" FL_dim_duty line=%d\n", __LINE__);
+	g_duty = duty;
+	return 0;
+}
+
+static int FL_Enable(void)
+{
+	//int ret=0;
+	flash_isink_enable();
+	//ret = mtkcam_flash_en(1);
+	if(g_duty<=1){
+		//mtkcam_flashstrobe_swich(0);
+		//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK1, 1, 1);
+		//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK2, 1, 1);
+		//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK3, 1, 1);
+		//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK1, 255, 1);
+	}else{
+		//mtkcam_flashstrobe_swich(1);
+		//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK1, 1, 1);
+		//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK2, 1, 1);
+		//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK3, 1, 1);
+		//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK1, 255, 1);
+	}
+
+	return 0;
+}
+
+static int FL_Disable(void)
+{
+	//int ret=0;
+	flash_isink_disable();
+	//ret = mtkcam_flash_en(0);
+	//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK1, 0, 1);
+	//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK2, 0, 1);
+	//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK3, 1, 1);
+	//mt_brightness_set_pmic(MT65XX_LED_PMIC_NLED_ISINK1, 255, 1);
+	return 0;
+}
+
+static int FL_Uninit(void)
+{
+	FL_Disable();
+	return 0;
+}
+
+
+
+static void work_timeOutFunc(struct work_struct *data)
+{
+	FL_Disable();
+	PK_DBG("ledTimeOut_callback\n");
+}
+
+static enum hrtimer_restart ledTimeOutCallback(struct hrtimer *timer)
+{
+	schedule_work(&workTimeOut);
+	return HRTIMER_NORESTART;
+}
+
+static struct hrtimer g_timeOutTimer;
+static void timerInit(void)
+{
+	INIT_WORK(&workTimeOut, work_timeOutFunc);
+	g_timeOutTimeMs = 1000;
+	hrtimer_init(&g_timeOutTimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	g_timeOutTimer.function = ledTimeOutCallback;
+}
+
+//end
+
 static int sub_strobe_ioctl(unsigned int cmd, unsigned long arg)
 {
-	PK_DBG("sub dummy ioctl");
+	//PK_DBG("sub dummy ioctl");
+	//add by allenyao
+	int i4RetValue = 0;
+	int ior_shift;
+	int iow_shift;
+	int iowr_shift;
+	printk("sub dummy ioctl,allenyao,%d\n",__LINE__);
+
+	ior_shift = cmd - (_IOR(FLASHLIGHT_MAGIC, 0, int));
+	iow_shift = cmd - (_IOW(FLASHLIGHT_MAGIC, 0, int));
+	iowr_shift = cmd - (_IOWR(FLASHLIGHT_MAGIC, 0, int));
+/*	PK_DBG
+	    ("LM3642 constant_flashlight_ioctl() line=%d ior_shift=%d, iow_shift=%d iowr_shift=%d arg=%d\n",
+	     __LINE__, ior_shift, iow_shift, iowr_shift, (int)arg);
+*/
+
+	printk
+	    ("LM3642 constant_flashlight_ioctl() line=%d ior_shift=%d, iow_shift=%d iowr_shift=%d arg=%d\n",
+	     __LINE__, ior_shift, iow_shift, iowr_shift, (int)arg);
+
+	switch (cmd) {
+
+	case FLASH_IOC_SET_TIME_OUT_TIME_MS:
+		printk("FLASH_IOC_SET_TIME_OUT_TIME_MS: %d\n", (int)arg);
+		g_timeOutTimeMs = arg;
+		break;
+
+
+	case FLASH_IOC_SET_DUTY:
+		printk("FLASHLIGHT_DUTY: %d\n", (int)arg);
+		FL_dim_duty(arg);
+		break;
+
+
+	case FLASH_IOC_SET_STEP:
+		PK_DBG("FLASH_IOC_SET_STEP: %d\n", (int)arg);
+
+		break;
+
+	case FLASH_IOC_SET_ONOFF:
+		printk("FLASHLIGHT_ONOFF: %d\n", (int)arg);
+		if (arg == 1) {
+
+			int s;
+			int ms;
+
+			if (g_timeOutTimeMs > 1000) {
+				s = g_timeOutTimeMs / 1000;
+				ms = g_timeOutTimeMs - s * 1000;
+			} else {
+				s = 0;
+				ms = g_timeOutTimeMs;
+			}
+
+			if (g_timeOutTimeMs != 0) {
+				ktime_t ktime;
+
+				ktime = ktime_set(s, ms * 1000000);
+				hrtimer_start(&g_timeOutTimer, ktime, HRTIMER_MODE_REL);
+			}
+			FL_Enable();
+		} else {
+			FL_Disable();
+			hrtimer_cancel(&g_timeOutTimer);
+		}
+		break;
+	default:
+		PK_DBG(" No such command\n");
+		i4RetValue = -EPERM;
+		break;
+	}
+	return i4RetValue;
+	//end
 	return 0;
 }
 
 static int sub_strobe_open(void *pArg)
 {
-	PK_DBG("sub dummy open");
+	//PK_DBG("sub dummy open");
+	//add by allenyao
+	int i4RetValue = 0;
+
+	printk("constant_flashlight_open line=%d\n", __LINE__);
+
+	if (0 == strobe_Res) {
+		FL_Init();
+		timerInit();
+	}
+	PK_DBG("constant_flashlight_open line=%d\n", __LINE__);
+	spin_lock_irq(&g_strobeSMPLock);
+
+
+	if (strobe_Res) {
+		PK_DBG(" busy!\n");
+		i4RetValue = -EBUSY;
+	} else {
+		strobe_Res += 1;
+	}
+
+
+	spin_unlock_irq(&g_strobeSMPLock);
+	PK_DBG("constant_flashlight_open line=%d\n", __LINE__);
+
+	return i4RetValue;
+	//end
 	return 0;
 
 }
 
 static int sub_strobe_release(void *pArg)
 {
-	PK_DBG("sub dummy release");
+	//PK_DBG("sub dummy release");
+	printk("sub dummy open,allenyao,%d\n",__LINE__);
+	PK_DBG(" constant_flashlight_release\n");
+
+	if (strobe_Res) {
+		spin_lock_irq(&g_strobeSMPLock);
+
+		strobe_Res = 0;
+		//strobe_Timeus = 0;
+
+		/* LED On Status */
+		g_strobe_On = FALSE;
+
+		spin_unlock_irq(&g_strobeSMPLock);
+
+		FL_Uninit();
+	}
+
+	PK_DBG(" Done\n");
+
+	return 0;
 	return 0;
 
 }
