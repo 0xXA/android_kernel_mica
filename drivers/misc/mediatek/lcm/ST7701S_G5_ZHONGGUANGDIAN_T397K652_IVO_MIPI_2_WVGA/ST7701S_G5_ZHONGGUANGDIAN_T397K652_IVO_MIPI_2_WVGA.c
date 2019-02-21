@@ -1,5 +1,5 @@
 /*
- *      Copyright © Yuvraj Saxena <infectedx27@gmail.com> @TheInfected
+ * Copyright © Yuvraj Saxena <ysaxenax@gmail.com> @TheInfected
  */
 
 #ifndef BUILD_LK
@@ -108,33 +108,33 @@ static void lcm_set_util_funcs(const LCM_UTIL_FUNCS *util) {
 
 static void lcm_get_params(LCM_PARAMS *params) {
 	memset(params, 0x00, sizeof(LCM_PARAMS));
-    	params->type = 2;
-	params->dsi.data_format.color_order = 2;
+	params->type = 2;
+	params->dsi.LANE_NUM = 2;
+	params->dsi.data_format.color_order = 0;
 	params->dsi.data_format.trans_seq = 0;
 	params->dsi.data_format.padding = 0;
-	params->dsi.data_format.format = 0;
+	params->dsi.data_format.format = 2;
+	params->dsi.packet_size = 256;
 	params->dsi.intermediat_buffer_num = 2;
-	params->dsi.packet_size_mult = 256;
 	params->dsi.PS = 2;
-	params->dsi.word_count = 2;
-	params->dsi.vertical_frontporch = 20;
-	params->dsi.vertical_backporch = 10;
-	params->dsi.vertical_frontporch_for_low_power = 18;
-	params->dsi.horizontal_backporch = 10;
+	params->dsi.vertical_backporch = 20;
+	params->dsi.vertical_sync_active = 10;
+	params->dsi.vertical_frontporch = 18;
+	params->dsi.horizontal_sync_active = 10;
+	params->dsi.horizontal_backporch = 30;
 	params->dsi.horizontal_frontporch = 30;
-	params->dsi.horizontal_blanking_pixel = 30;
-	params->dsi.lcm_esd_check_table[0].para_list[2] = 10;
+	params->dsi.lcm_esd_check_table[0].cmd = 10;
 	params->width = 480;
 	params->height = 800;
-	params->dsi.switch_mode = 1;
-	params->dsi.horizontal_sync_active = 800;
-	params->dsi.horizontal_bllp = 480;
-	params->dsi.PLL_CK_VDO = 170;
-	params->dsi.lcm_int_te_monitor = 1;
+	params->dsi.mode = 1;
+	params->dsi.vertical_active_line = 800;
+	params->dsi.horizontal_active_pixel = 480;
+	params->dsi.PLL_CLOCK = 170;
 	params->dsi.esd_check_enable = 1;
-	params->dsi.lcm_esd_check_table[0].para_list[3] = 1;
-	params->dsi.lcm_esd_check_table[0].para_list[4] = -100;
-	params->dsi.noncont_clock_period = 1;
+	params->dsi.customization_esd_check_enable = 1;
+	params->dsi.lcm_esd_check_table[0].count = 1;
+	params->dsi.lcm_esd_check_table[0].para_list[0] = -100;
+	params->dsi.noncont_clock = 1;
 }
 
 static void lcm_init(void) {
